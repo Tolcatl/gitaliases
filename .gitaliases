@@ -1,0 +1,233 @@
+[alias]
+    # ┌────────────────────────────────────────────┐
+    # │    Files in working directory or stage     │
+    # └────────────────────────────────────────────┘
+
+    # Short status (-s) with branch information (-b)
+    s = status -sb
+
+    # Long status with number of stashes
+    st = status --show-stash
+
+
+    # ┌──────────────────────────┐
+    # │      Commit history      │
+    # └──────────────────────────┘
+
+    # Log pretty: used on other log commands
+    #
+    # %h 			Abbreviated commit hash
+    # %an			Author name
+    # %d			Ref names, like the --decorate option (shows branches that point to each commit)
+    # %D			Ref names withour the "(,)" wrapping
+    # %ad			Author date (commit creation date, format respects --date= option)
+    # %cd			Committer date (commit last MODIFICATION date, different from author date if commit amended or modified afterwards)
+    # %cr			Committer date, relative = "2 days ago"
+    # %s			Subject (commit message)
+
+    # Last commit
+    l = log --format='  %Cred%h%Creset %<(5,trunc)%C(blue)%an%Creset %>(6,trunc)%Cblue%cr%Creset %C(bold magenta)%s%Creset'  -1
+
+    # Last commit + list of modified files
+    ls = !git l --stat
+
+    # Last commit + compare creation date / modification date (to see if there was a commit amend)
+    ld = log --format='  %Cred%h%Creset %<(16,trunc)%Cgreen%an%Creset %C(bold magenta)%s%Creset %C(blue)%ad %cd (%cr)%Creset' --date=format:'%d/%m/%y %H:%M' -1
+
+    # 3 last commits, with or without modified files
+    ll = !git l -3
+    lls = !git ll --stat
+
+    # 5 or 10 last commits with graph
+    lll = log --format='%Cred%h%Creset %<(5,trunc)%Cgreen%an%Creset %>(6,trunc)%C(blue)%cr%Creset %C(bold magenta)%s%Creset %C(cyan)%d%Creset'  -5 --graph
+    llll = !git lll -10
+
+    # Find commits with specific word in message ■ git lep [wordToSearchFor]
+    lep = log --format='  %Cred%h%Creset %<(5,trunc)%Cgreen%an%Creset %>(6,trunc)%Cblue%cr%Creset %C(bold magenta)%s%Creset' --grep
+
+    # Log all commits from tag/commit up to HEAD ■ git since v1.11.0 -> git log v1.11.0..HEAD
+    since = !sh -c \"git log $1.. --oneline --format='  %Cred%h%Creset %<(5,trunc)%C(blue)%an%Creset %>(6,trunc)%Cblue%cr%Creset %C(bold magenta)%s%Creset'\"
+
+
+    # ┌─────────────────────────────────┐
+    # │      Commited files history     │
+    # └─────────────────────────────────┘
+
+    # Shows files modified in a commit ■ git shy [commithash], git shy stash@{0}, git shy (without commithash, show last one)
+    shy = show --name-only
+
+    # Log files changed from one commit to HEAD ■ git diffsince [commithash]
+    diffsince = !sh -c \"git diff --name-only $1 \"
+
+    # Log files added since commit ■ git newsince [commithash]
+    newsince = !sh -c \"git diff --name-only --diff-filter=A $1\"
+
+    # Log files deleted since commit ■ git deletedsince [commithash]
+    deletedsince = !sh -c \"git diff --name-only --diff-filter=D $1\"
+
+    # Log files renamed since commit ■ git renamedsince [commithash]
+    renamedsince = !sh -c \"git diff --name-only --diff-filter=R $1\"
+
+		
+    # ┌─────────────────────────┐
+    # │      Branches CRUD      │
+    # └─────────────────────────┘
+
+    b = branch
+
+    # Updates local remote branch list - ▲ Next command includes this one, not to be used itself
+    rune = remote update origin --prune
+
+    # Update and show remote branches
+    br = !git rune && git b -r
+
+    # Creates a new branch from develop ■ git cdb [newBranchName]
+    cdb = !git fd && git cd && git cb
+
+    # Delete with check if merged, and confirm prompt ■ git bd [branchToSafeDelete]
+    bd = branch -d
+
+    # Force delete ■ git bd [branchToDeleteWithNoRegrets]
+    bdd = branch -D
+
+    # Delete branch on local and remote ■ git delete [branchToDelete]
+    delete = !sh -c 'git branch -D $1 && git push origin :$1' -
+
+    # Delete all branches on origin that have been merged into develop. First one is to only show branch list, no delete.
+    # Will show a prompt y/n for each branch to delete.
+    deletemergedcheck = !git rune && git branch -r --merged develop | awk -F/ '/^ *origin/{if(!match($0, /(>|develop|master)/)){print $2 \"/\" $3}}'
+    deletemerged = !git rune && git branch -r --merged develop | awk -F/ '/^ *origin/{if(!match($0, /(>|develop|master)/)){print $2 \"/\" $3}}' | xargs -rpn1 git push origin --delete
+
+    # Delete all branches on origin that have been merged into master (same as for develop, only first 'develop' word changed)
+    deletemergedmaster = !git rune && git branch -r --merged master | awk -F/ '/^ *origin/{if(!match($0, /(>|develop|master)/)){print $2 \"/\" $3}}' | xargs -rpn1 git push origin --delete
+
+
+    # ┌────────────────────┐
+    # │      Checkout      │
+    # └────────────────────┘
+
+     c = checkout
+
+     # Create branch and checkout ■ git cb [newBranchName]
+     cb = checkout -b
+
+     cd = checkout develop
+     cm = checkout master
+
+
+    # ┌──────────────────────────────────────┐
+    # │      Fetch, pull, merge, rebase      │
+    # └──────────────────────────────────────┘
+
+    # Update develop/master/both without changing branch (fast forward only). Pull rebase if necessary.
+    # All local changes on develop must have been pushed first. Otherwise there will be a rebase even if origin=AB and local=ABC
+    # /!\ If already on develop, will do a checkout develop because part before "||" will return false
+    fd = !git fetch origin develop:develop || (git checkout develop && git pull && git push)
+    fm = !git fetch origin master:master || (git checkout master && git pull && git push)
+
+    # Show last develop/master commit - ▲ Used only for other commands
+    refdevelop = !git show-ref --heads -s develop
+    refmaster = !git show-ref --heads -s master
+
+    # Show last common commit between develop or master and current branch - ▲ Used only for other commands
+    commonhashdevelop = !git merge-base develop $(git branch-name)
+    commonhashmaster = !git merge-base master $(git branch-name)
+
+    # Check whether current branch can be merged into develop/master with fast-forward (no risk of conflicts)
+    # Returns TRUE if current branch can be merged with fast forward. Otherwise, branch should be rebased onto develop/master first.
+    # /!\ Only rebase branches that have no descendants (i.e., no branches have been created from it)
+    canmergeintodevelop = ![ $(git refdevelop) = $(git commonhashdevelop) ]
+    canmergeintomaster = ![ $(git refmaster) = $(git commonhashmaster) ]
+
+    # Fetch develop/master and rebase current branch onto it if necessary.
+    # -r is for --rebase-merges (keep merge commits).
+    rbd = !git fd && git canmergeintodevelop || git rebase -r origin/develop
+    rbm = !git fm && git canmergeintomaster || git rebase -r origin/master
+
+    # Merge branch into develop (mid = Merge Into Develop), or mim = same with master. Steps with develop:
+    # 1) Fetch develop
+    # 2) If branch can be merged into develop with fast forward, checkout develop, merge branch then checkout branch
+    # 3) If branch can NOT be merged with fast forward, rebase branch onto develop
+    # 4) If you had to rebase develop, use git mid again to merge it into develop with fast forward (now possible)
+    mid = !git fd && curb=$(git branch-name) && git canmergeintodevelop && git cd && git merge $curb && git checkout $curb || git rebase develop
+    mim = !git fm && curb=$(git branch-name) && git canmergeintomaster && git cm && git merge $curb && git checkout $curb || git rebase master
+
+    # You forgot something on your last commit, you've just fixed it on some files
+    # Use this command to amend your changes to your last commit
+    fix = !git aa && git coam
+
+
+    # ┌─────────────────┐
+    # │      Commit     │
+    # └─────────────────┘
+	
+    # Add ALL files, including new ones, then show files added
+    aa = !git add . && git s
+
+    # Add modified and deleted files. NEW FILES MUST BE ADDED MANUALLY.
+    a = !git add -u && git s
+
+    # Commit with message
+    com = commit -m
+
+    # Add all to index and commit with msg
+    acom = !git add . && git commit -m
+
+    # Change last commit message
+    chm = commit --amend -m
+
+    # Commit into last commit
+    coam = !git commit --amend --no-edit && git s
+
+    # Clears all files from index and put them back in working directory. ■ git unstage (all), git unstage [filepath] (one file)
+    unstage = reset HEAD --
+
+    # Undo changes. Remove from stage AND working directory ■ git undo (all), git undo [filepath] (one file)
+    # ▲ USE CAREFULLY, WILL DISCARD ANY CHANGES YOU MADE
+    undo = checkout HEAD --
+
+    # Shows changes in index ("green" files, added to stage, compared to last commit)
+    dc = diff --cached
+
+    # Put your last commit back in stage
+    resod = reset --soft HEAD^
+
+
+    # ┌───────────────────────────────────────────────┐
+    # │     Publish : actions on remote repository    │
+    # └───────────────────────────────────────────────┘
+	
+    # Get the current branch name (not so useful in itself, but used in other aliases)
+    branch-name = "!git rev-parse --abbrev-ref HEAD"
+
+    # Push the current branch to the remote "origin", and set it to track the upstream branch.
+    publish = "!git push -u origin $(git branch-name)"
+
+    # Delete the remote version of the current branch
+    unpublish = "!git push origin :$(git branch-name)"
+
+    # Push force but with a magical check that I still need to understand
+    please = push --force-with-lease
+
+
+    # ┌───────────────┐
+    # │      Misc     │
+    # └───────────────┘
+	
+	# Shows all aliases
+	alias = !git config --list | grep 'alias'
+	
+	# Accelerate git by cleaning useless temp files
+	speed = !git fsck && git gc --prune=now
+	
+	# Stash with name.
+	# 	-u				Include untracked (??)
+	# 	--keep-index	(-k) Keep files added to stage (=DO NOT add staged files to stash)
+	stm = stash push -m  
+	
+	sl = stash list
+	
+	# Show tags
+	# To be improved, see https://stackoverflow.com/questions/6269927/how-can-i-list-all-tags-in-my-git-repository-by-the-date-they-were-created
+	# OR git tag -n
+	tags = tag -l --format='%(refname:short) %(creatordate:short) %(subject)' --sort=creatordate
