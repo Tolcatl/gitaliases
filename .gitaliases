@@ -1,46 +1,20 @@
 [alias]
-    # ┌────────────────────────────────────────────┐
-    # │    Files in working directory or stage     │
-    # └────────────────────────────────────────────┘
-
-    # Short status (-s) with branch information (-b)
-    s = status -sb
-
-    # Long status with number of stashes
-    st = status --show-stash
-
-
     # ┌──────────────────────────┐
     # │      Commit history      │
     # └──────────────────────────┘
 
-    # Log pretty: used on other log commands
-    #
-    # %h 			Abbreviated commit hash
-    # %an			Author name
-    # %d			Ref names, like the --decorate option (shows branches that point to each commit)
-    # %D			Ref names withour the "(,)" wrapping
-    # %ad			Author date (commit creation date, format respects --date= option)
-    # %cd			Committer date (commit last MODIFICATION date, different from author date if commit amended or modified afterwards)
-    # %cr			Committer date, relative = "2 days ago"
-    # %s			Subject (commit message)
-
     # Last commit
     l = log --format='  %Cred%h%Creset %<(5,trunc)%C(blue)%an%Creset %>(6,trunc)%Cblue%cr%Creset %C(bold magenta)%s%Creset'  -1
 
-    # Last commit + list of modified files
-    ls = !git l --stat
-
-    # Last commit + compare creation date / modification date (to see if there was a commit amend)
-    ld = log --format='  %Cred%h%Creset %<(16,trunc)%Cgreen%an%Creset %C(bold magenta)%s%Creset %C(blue)%ad %cd (%cr)%Creset' --date=format:'%d/%m/%y %H:%M' -1
-
-    # 3 last commits, with or without modified files
+    # 3 last commits
     ll = !git l -3
-    lls = !git ll --stat
 
     # 5 or 10 last commits with graph
     lll = log --format='%Cred%h%Creset %<(5,trunc)%Cgreen%an%Creset %>(6,trunc)%C(blue)%cr%Creset %C(bold magenta)%s%Creset %C(cyan)%d%Creset'  -5 --graph
     llll = !git lll -10
+
+    # Last commit + list of modified files. Adds A/M/D before each file to distinct Added/Modified/Removed
+    ls = !git l --stat --name-status
 
     # Find commits with specific word in message ■ git lep [wordToSearchFor]
     lep = log --format='  %Cred%h%Creset %<(5,trunc)%Cgreen%an%Creset %>(6,trunc)%Cblue%cr%Creset %C(bold magenta)%s%Creset' --grep
@@ -48,13 +22,16 @@
     # Log all commits from tag/commit up to HEAD ■ git since v1.11.0 -> git log v1.11.0..HEAD
     since = !sh -c \"git log $1.. --oneline --format='  %Cred%h%Creset %<(5,trunc)%C(blue)%an%Creset %>(6,trunc)%Cblue%cr%Creset %C(bold magenta)%s%Creset'\"
 
+    # Last commit + compare creation date / modification date (to see if there was a commit amend)
+    ld = log --format='  %Cred%h%Creset %<(16,trunc)%Cgreen%an%Creset %C(bold magenta)%s%Creset %C(blue)%ad %cd (%cr)%Creset' --date=format:'%d/%m/%y %H:%M' -1
+
 
     # ┌─────────────────────────────────┐
     # │      Commited files history     │
     # └─────────────────────────────────┘
 
-    # Shows files modified in a commit ■ git shy [commithash], git shy stash@{0}, git shy (without commithash, show last one)
-    shy = show --name-only
+    # Shows files modified in a commit. Adds A/M/D before each file to distinct Added/Modified/Removed ■ git shy [commithash], git shy stash@{0}, git shy (without commithash, show last one)
+    see = show --name-status
 
     # Log files changed from one commit to HEAD ■ git diffsince [commithash]
     diffsince = !sh -c \"git diff --name-only $1 \"
@@ -68,13 +45,69 @@
     # Log files renamed since commit ■ git renamedsince [commithash]
     renamedsince = !sh -c \"git diff --name-only --diff-filter=R $1\"
 
-		
+
+    # ┌────────────────────┐
+    # │      Checkout      │
+    # └────────────────────┘
+
+     c = checkout
+     cd = checkout develop
+     cm = checkout master
+
+
+    # ┌─────────────────┐
+    # │      Commit     │
+    # └─────────────────┘
+
+    # Short status (-s) with branch information (-b)
+    s = status -sb
+
+    # Add ALL files, including new ones, then show files added
+    aa = !git add . && git s
+
+    # Add modified and deleted files. NEW FILES MUST BE ADDED MANUALLY.
+    a = !git add -u && git s
+
+    # Commit with message
+    com = commit -m
+
+    # Add all to index and commit with msg
+    acom = !git add . && git commit -m
+
+    # Change last commit message
+    chm = commit --amend -m
+
+    # Commit into last commit
+    coam = !git commit --amend --no-edit && git s
+
+    # You forgot something on your last commit, you've just fixed it on some files.
+    # Use this command to amend your changes to your last commit.
+    fix = !git aa && git coam
+
+    # Clears all files from index and put them back in working directory. ■ git unstage (all), git unstage [filepath] (one file)
+    unstage = reset HEAD --
+
+    # Undo changes. Remove from stage AND working directory ■ git undo (all), git undo [filepath] (one file)
+    # ▲ USE CAREFULLY, WILL DISCARD ANY CHANGES YOU MADE
+    undo = checkout HEAD --
+
+    # Put your last commit back in stage
+    resod = reset --soft HEAD^
+
+
+    # Shows changes in index ("green" files, added to stage, compared to last commit)
+    dc = diff --cached
+
+
     # ┌─────────────────────────┐
     # │      Branches CRUD      │
     # └─────────────────────────┘
 
     b = branch
 
+    # Create branch and checkout ■ git cb [newBranchName]
+    cb = checkout -b
+	 
     # Updates local remote branch list - ▲ Next command includes this one, not to be used itself
     rune = remote update origin --prune
 
@@ -102,28 +135,15 @@
     deletemergedmaster = !git rune && git branch -r --merged master | awk -F/ '/^ *origin/{if(!match($0, /(>|develop|master)/)){print $2 \"/\" $3}}' | xargs -rpn1 git push origin --delete
 
 
-    # ┌────────────────────┐
-    # │      Checkout      │
-    # └────────────────────┘
-
-     c = checkout
-
-     # Create branch and checkout ■ git cb [newBranchName]
-     cb = checkout -b
-
-     cd = checkout develop
-     cm = checkout master
-
-
     # ┌──────────────────────────────────────┐
     # │      Fetch, pull, merge, rebase      │
     # └──────────────────────────────────────┘
 
-    # Update develop/master/both without changing branch (fast forward only). Pull rebase if necessary.
+    # Update develop/master without changing branch (fast forward only). Pull rebase if necessary.
     # All local changes on develop must have been pushed first. Otherwise there will be a rebase even if origin=AB and local=ABC
     # /!\ If already on develop, will do a checkout develop because part before "||" will return false
-    fd = !git fetch origin develop:develop || (git checkout develop && git pull && git push)
-    fm = !git fetch origin master:master || (git checkout master && git pull && git push)
+    fd = !git fetch origin develop:develop || (git checkout develop && git pull)
+    fm = !git fetch origin master:master || (git checkout master && git pull)
 
     # Show last develop/master commit - ▲ Used only for other commands
     refdevelop = !git show-ref --heads -s develop
@@ -151,46 +171,6 @@
     # 4) If you had to rebase develop, use git mid again to merge it into develop with fast forward (now possible)
     mid = !git fd && curb=$(git branch-name) && git canmergeintodevelop && git cd && git merge $curb && git checkout $curb || git rebase develop
     mim = !git fm && curb=$(git branch-name) && git canmergeintomaster && git cm && git merge $curb && git checkout $curb || git rebase master
-
-    # You forgot something on your last commit, you've just fixed it on some files
-    # Use this command to amend your changes to your last commit
-    fix = !git aa && git coam
-
-
-    # ┌─────────────────┐
-    # │      Commit     │
-    # └─────────────────┘
-	
-    # Add ALL files, including new ones, then show files added
-    aa = !git add . && git s
-
-    # Add modified and deleted files. NEW FILES MUST BE ADDED MANUALLY.
-    a = !git add -u && git s
-
-    # Commit with message
-    com = commit -m
-
-    # Add all to index and commit with msg
-    acom = !git add . && git commit -m
-
-    # Change last commit message
-    chm = commit --amend -m
-
-    # Commit into last commit
-    coam = !git commit --amend --no-edit && git s
-
-    # Clears all files from index and put them back in working directory. ■ git unstage (all), git unstage [filepath] (one file)
-    unstage = reset HEAD --
-
-    # Undo changes. Remove from stage AND working directory ■ git undo (all), git undo [filepath] (one file)
-    # ▲ USE CAREFULLY, WILL DISCARD ANY CHANGES YOU MADE
-    undo = checkout HEAD --
-
-    # Shows changes in index ("green" files, added to stage, compared to last commit)
-    dc = diff --cached
-
-    # Put your last commit back in stage
-    resod = reset --soft HEAD^
 
 
     # ┌───────────────────────────────────────────────┐
@@ -221,7 +201,7 @@
 	speed = !git fsck && git gc --prune=now
 	
 	# Stash with name.
-	# 	-u				Include untracked (??)
+	# 	-u				Include untracked
 	# 	--keep-index	(-k) Keep files added to stage (=DO NOT add staged files to stash)
 	stm = stash push -m  
 	
